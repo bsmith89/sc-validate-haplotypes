@@ -74,6 +74,9 @@ def snp_dict_lookup(fpath, gtp_array, v2, out="/dev/stdout"):
 
     with open(fpath, "r") as fh:
         for line in fh:
+            if gtp_i >= len(gtp_array):
+                break
+
             if line.strip() == "" or line[0] == "#":
                 continue
 
