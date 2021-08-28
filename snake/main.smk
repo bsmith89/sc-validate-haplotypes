@@ -19,10 +19,13 @@ from textwrap import dedent as dd
 from scripts.build_db import DatabaseInput
 import os.path as path
 from warnings import warn
+import snakemake.utils
 
 # {{{1 Configuration
 
 # {{{2 General Configuration
+
+snakemake.utils.min_version("6.7")
 
 
 configfile: "config.yaml"
@@ -92,15 +95,13 @@ else:
 include: "snake/template.smk"
 include: "snake/util.smk"
 include: "snake/general.smk"
+include: "snake/docs.smk"
+include: "snake/mgen_preprocess.smk"
 
 
 if path.exists("snake/local.smk"):
 
     include: "snake/local.smk"
-
-
-include: "snake/docs.smk"
-include: "snake/mgen_preprocess.smk"
 
 
 wildcard_constraints:
