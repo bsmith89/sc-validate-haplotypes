@@ -75,11 +75,11 @@ rule concatenate_mgen_group_one_read_count_data_from_one_species:
         species=lambda w: w.species,
         args=lambda w: "\n".join(
             [
-                f"{mgen}\tdata/{mgen}.{w.stem}.gtpro_parse.tsv.bz2"
+                f"{mgen}\tdata/{mgen}.m.{w.stem}.gtpro_parse.tsv.bz2"
                 for mgen in config["mgen_x_analysis_group"][w.group]
             ]
             + [
-                f"{drplt}\tdata/{drplt}.{w.stem}.gtpro_parse.tsv.bz2"
+                f"{drplt}\tdata/{drplt}.d.{w.stem}.gtpro_parse.tsv.bz2"
                 for drplt in config["drplt_x_analysis_group"][w.group]
             ]
         ),
