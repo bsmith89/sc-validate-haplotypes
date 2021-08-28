@@ -2,7 +2,7 @@
 """Copied from https://github.com/zjshi/gt-pro scripts.
 
 """
-import os, sys, argparse
+import argparse
 
 
 def parse_args():
@@ -16,7 +16,7 @@ def parse_args():
         type=str,
         dest="snp_dict",
         required=True,
-        help="""Path to disctionary of SNPs""",
+        help="""Path to dictionary of SNPs""",
     )
     parser.add_argument(
         "--in",
