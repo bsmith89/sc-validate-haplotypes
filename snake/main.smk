@@ -1,16 +1,19 @@
-# {{{1 Preamble
+# {{{0 Preamble
 
 # {{{2 Imports
 
 from lib.snake import (
     alias_recipe,
+    alias_recipe_norelative,
     noperiod_wc,
     integer_wc,
     single_param_wc,
     limit_numpy_procs_to_1,
     curl_recipe,
     limit_numpy_procs,
+    resource_calculator,
 )
+import sqlite3
 from lib.pandas import idxwhere
 import pandas as pd
 import math
@@ -53,41 +56,58 @@ else:
 
 # {{{2 Data Configuration
 
-_mgen_meta = "meta/mgen.tsv"
-if path.exists(_mgen_meta):
-    _mgen = pd.read_table(_mgen_meta, index_col="mgen_id")
+metadb_path = "sdata/db0.db"
+if path.exists(metadb_path):
+    con = sqlite3.connect(metadb_path)
+
+    # Metagenomes
+    _mgen = pd.read_sql(
+        "SELECT mgen_id, filename_r1, filename_r2 FROM mgen",
+        con=con,
+        index_col="mgen_id",
+    )
     config["mgen"] = {}
     for mgen_id, row in _mgen.iterrows():
         config["mgen"][mgen_id] = {}
         config["mgen"][mgen_id]["r1"] = row["filename_r1"]
         config["mgen"][mgen_id]["r2"] = row["filename_r2"]
-else:
-    warn(
-        dd(
-            f"""
-            Could not load config from `{_mgen_meta}`.
-            Check that path is defined and file exists.
-            """
-        )
+    _mgen_x_analysis_group = pd.read_sql(
+        "SELECT mgen_id, analysis_group FROM mgen_x_analysis_group",
+        con=con,
+        index_col="mgen_id",
     )
-    config["mgen"] = {}
+    config["mgen_x_analysis_group"] = {}
+    for analysis_group, d in _mgen_x_analysis_group.groupby("analysis_group"):
+        config["mgen_x_analysis_group"][analysis_group] = d.index.tolist()
 
-_mgen_x_mgen_group_meta = "meta/mgen_x_mgen_group.tsv"
-if path.exists(_mgen_x_mgen_group_meta):
-    _mgen_x_mgen_group = pd.read_table(_mgen_x_mgen_group_meta)
-    config["mgen_group"] = {}
-    for mgen_group, d in _mgen_x_mgen_group.groupby("mgen_group"):
-        config["mgen_group"][mgen_group] = d.mgen_id.tolist()
+    # Single-cell genomics
+    _drplt = pd.read_sql(
+        "SELECT drplt_id, filename_r1, filename_r2 FROM drplt",
+        con=con,
+        index_col="drplt_id",
+    )
+    config["drplt"] = {}
+    for drplt_id, row in _drplt.iterrows():
+        config["drplt"][drplt_id] = {}
+        config["drplt"][drplt_id]["r1"] = row["filename_r1"]
+        config["drplt"][drplt_id]["r2"] = row["filename_r2"]
+    _drplt_x_analysis_group = pd.read_sql(
+        "SELECT drplt_id, analysis_group FROM drplt_x_analysis_group",
+        con=con,
+        index_col="drplt_id",
+    )
+    config["drplt_x_analysis_group"] = {}
+    for analysis_group, d in _drplt_x_analysis_group.groupby("analysis_group"):
+        config["drplt_x_analysis_group"][analysis_group] = d.index.tolist()
 else:
     warn(
         dd(
             f"""
-            Could not load config from `{_mgen_x_mgen_group_meta}`.
+            Could not load config from `{metadb_path}`.
             Check that path is defined and file exists.
             """
         )
     )
-    config["mgen_group"] = {}
 
 # {{{2 Sub-pipelines
 
@@ -96,7 +116,8 @@ include: "snake/template.smk"
 include: "snake/util.smk"
 include: "snake/general.smk"
 include: "snake/docs.smk"
-include: "snake/mgen_preprocess.smk"
+include: "snake/preprocess.smk"
+include: "snake/gtpro.smk"
 
 
 if path.exists("snake/local.smk"):
@@ -107,7 +128,7 @@ if path.exists("snake/local.smk"):
 wildcard_constraints:
     r="r|r1|r2|r3",
     group=noperiod_wc,
-    mgen=noperiod_wc,
+    lib=noperiod_wc,
     species=noperiod_wc,
     strain=noperiod_wc,
     compound_id=noperiod_wc,
@@ -128,25 +149,28 @@ rule all:
 # {{{1 Database
 
 
-database_inputs = [
+db0_inputs = [
     # Metadata
-    DatabaseInput("subject", "smeta/subject.tsv", True),
+    DatabaseInput("subject", "meta/subject.tsv", True),
     DatabaseInput("sample", "meta/sample.tsv", True),
     # Metagenomes
     DatabaseInput("mgen", "meta/mgen.tsv", True),
-    DatabaseInput("mgen_x_mgen_group", "meta/mgen_x_mgen_group.tsv", True),
+    DatabaseInput("mgen_x_analysis_group", "meta/mgen_x_analysis_group.tsv", True),
+    # Droplets
+    DatabaseInput("drplt", "meta/drplt.tsv", True),
+    DatabaseInput("drplt_x_analysis_group", "meta/drplt_x_analysis_group.tsv", True),
 ]
 
 
-rule build_db:
+rule build_db0:
     output:
-        "sdata/database.db",
+        "sdata/db0.db",
     input:
         script="scripts/build_db.py",
         schema="schema.sql",
-        inputs=[entry.path for entry in database_inputs],
+        inputs=[entry.path for entry in db0_inputs],
     params:
-        args=[entry.to_arg() for entry in database_inputs],
+        args=[entry.to_arg() for entry in db0_inputs],
     shell:
         dd(
             r"""
