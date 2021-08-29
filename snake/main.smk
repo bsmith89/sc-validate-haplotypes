@@ -12,6 +12,8 @@ from lib.snake import (
     curl_recipe,
     limit_numpy_procs,
     resource_calculator,
+    nested_defaultdict,
+    nested_dictlookup,
 )
 import sqlite3
 from lib.pandas import idxwhere
@@ -30,6 +32,8 @@ import snakemake.utils
 
 snakemake.utils.min_version("6.7")
 
+
+config = nested_defaultdict()
 
 configfile: "config.yaml"
 
@@ -66,9 +70,7 @@ if path.exists(metadb_path):
         con=con,
         index_col="mgen_id",
     )
-    config["mgen"] = {}
     for mgen_id, row in _mgen.iterrows():
-        config["mgen"][mgen_id] = {}
         config["mgen"][mgen_id]["r1"] = row["filename_r1"]
         config["mgen"][mgen_id]["r2"] = row["filename_r2"]
     _mgen_x_analysis_group = pd.read_sql(
@@ -76,7 +78,6 @@ if path.exists(metadb_path):
         con=con,
         index_col="mgen_id",
     )
-    config["mgen_x_analysis_group"] = {}
     for analysis_group, d in _mgen_x_analysis_group.groupby("analysis_group"):
         config["mgen_x_analysis_group"][analysis_group] = d.index.tolist()
 
@@ -86,9 +87,7 @@ if path.exists(metadb_path):
         con=con,
         index_col="drplt_id",
     )
-    config["drplt"] = {}
     for drplt_id, row in _drplt.iterrows():
-        config["drplt"][drplt_id] = {}
         config["drplt"][drplt_id]["r1"] = row["filename_r1"]
         config["drplt"][drplt_id]["r2"] = row["filename_r2"]
     _drplt_x_analysis_group = pd.read_sql(
@@ -96,7 +95,6 @@ if path.exists(metadb_path):
         con=con,
         index_col="drplt_id",
     )
-    config["drplt_x_analysis_group"] = {}
     for analysis_group, d in _drplt_x_analysis_group.groupby("analysis_group"):
         config["drplt_x_analysis_group"][analysis_group] = d.index.tolist()
 else:
