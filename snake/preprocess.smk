@@ -85,15 +85,6 @@ rule qc_reads:
         )
 
 
-rule debug:
-    input:
-        r1="sdata/SS01013.m.r1.noop.fq.gz",
-    resources:
-        mem_mb=resource_calculator(r1=2),
-    shell:
-        "echo {resources.mem_mb}"
-
-
 rule deduplicate_reads:
     output:
         r1=temp("{stemA}.r1{stemB}dedup.fq.gz"),
