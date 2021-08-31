@@ -2,26 +2,16 @@
 
 
 rule build_gtpro_snp_dict:
-    output: "ref/gtpro.snp_dict.db"
-    input: "ref/gtpro"
+    output: "sdata/gtpro.snp_dict.db"
+    input:
+        gtpro="ref/gtpro",
+        db0="sdata/db0.db"
     params:
         tsv="variants_main.covered.hq.snp_dict.tsv"
     shell:
         dd("""
-        script=$(mktemp)
-        cat >$script <<EOF
-        CREATE TABLE snp
-        ( species_id
-        , species_position
-        , contig_id
-        , contig_position
-        , reference_allele
-        , alternative_allele
-
-        , PRIMARY KEY (species_id, species_position)
-        );
-        EOF
-        sqlite3 {output} < $script
+        cp {input.db0} {output}
+        chmod u+w {output}
         cat {input}/{params.tsv} \
             | tqdm \
             | sqlite3 -separator '\t' {output} '.import /dev/stdin snp'
