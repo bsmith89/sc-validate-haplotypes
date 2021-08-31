@@ -125,21 +125,10 @@ rule gtpro_finish_processing_reads:
 
 # NOTE: Comment out this rule to speed up DAG evaluation.
 # Selects a single species from every file and concatenates.
-rule concatenate_mgen_group_one_read_count_data_from_one_species:
+rule construct_file_list_for_gtpro_concatenation:
     output:
-        "data/{group}.a.{stem}.sp-{species}.gtpro_combine.tsv.bz2",
-    input:
-        script="scripts/select_gtpro_species_lines.sh",
-        mgen=lambda w: [
-            f"data/{mgen}.m.{{stem}}.gtpro_parse.tsv.bz2"
-            for mgen in config["mgen_x_analysis_group"][w.group]
-        ],
-        drplt=lambda w: [
-            f"data/{drplt}.d.{{stem}}.gtpro_parse.tsv.bz2"
-            for drplt in config["drplt_x_analysis_group"][w.group]
-        ],
+        "data/{group}.a.{stem}.sp-{species}.gtpro_combine_helper.tsv",
     params:
-        species=lambda w: w.species,
         args=lambda w: "\n".join(
             [
                 f"{mgen}\tdata/{mgen}.m.{w.stem}.gtpro_parse.tsv.bz2"
@@ -150,16 +139,34 @@ rule concatenate_mgen_group_one_read_count_data_from_one_species:
                 for drplt in config["drplt_x_analysis_group"][w.group]
             ]
         ),
+    run:
+        with open(output[0], 'w') as f:
+            print(params.args, file=f)
+
+# NOTE: Comment out this rule to speed up DAG evaluation.
+# Selects a single species from every file and concatenates.
+rule concatenate_mgen_group_one_read_count_data_from_one_species:
+    output:
+        "data/{group}.a.{stem}.sp-{species}.gtpro_combine.tsv.bz2",
+    input:
+        script="scripts/select_gtpro_species_lines.sh",
+        helper="data/{group}.a.{stem}.sp-{species}.gtpro_combine_helper.tsv",
+        mgen=lambda w: [
+            f"data/{mgen}.m.{{stem}}.gtpro_parse.tsv.bz2"
+            for mgen in config["mgen_x_analysis_group"][w.group]
+        ],
+        drplt=lambda w: [
+            f"data/{drplt}.d.{{stem}}.gtpro_parse.tsv.bz2"
+            for drplt in config["drplt_x_analysis_group"][w.group]
+        ],
+    params:
+        species=lambda w: w.species,
     threads: 6
     shell:
         dd(
             """
-        tmp=$(mktemp)
-        cat >$tmp <<EOF
-        {params.args}
-        EOF
         parallel --colsep='\t' --bar -j {threads} \
-                {input.script} {params.species} :::: $tmp \
+                {input.script} {params.species} :::: {input.helper} \
             | bzip2 -c \
             > {output}
         """
