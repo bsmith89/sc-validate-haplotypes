@@ -1,6 +1,33 @@
 # {{{2 GT-PRO Analysis
 
 
+rule build_gtpro_snp_dict:
+    output: "ref/gtpro.snp_dict.db"
+    input: "ref/gtpro"
+    params:
+        tsv="variants_main.covered.hq.snp_dict.tsv"
+    shell:
+        dd("""
+        script=$(mktemp)
+        cat >$script <<EOF
+        CREATE TABLE snp
+        ( species_id
+        , species_position
+        , contig_id
+        , contig_position
+        , reference_allele
+        , alternative_allele
+
+        , PRIMARY KEY (species_id, species_position)
+        );
+        EOF
+        sqlite3 {output} < $script
+        cat {input}/{params.tsv} \
+            | tqdm \
+            | sqlite3 -separator '\t' {output} '.import /dev/stdin snp'
+        """)
+
+
 rule run_gtpro:
     output:
         "{stem}.gtpro_raw.gz",
@@ -40,17 +67,57 @@ rule gtpro_finish_processing_reads:
     output:
         "data/{stem}.gtpro_parse.tsv.bz2",
     input:
-        script="scripts/gtp_parse.py",
+        db="ref/gtpro.snp_dict.db",
         gtpro="data/{stem}.gtpro_raw.gz",
-    params:
-        db="ref/gtpro/variants_main.covered.hq.snp_dict.tsv",
-    resources:
-        walltime_hr=2,
     shell:
         dd(
             """
-        {input.script} --dict {params.db} --in <(zcat {input.gtpro}) --v2 \
-                | bzip2 -c \
+        script=$(mktemp)
+        cat > $script <<EOF
+        .bail on
+        .separator '\t'
+
+        CREATE TEMPORARY TABLE _gtpro
+        ( snp_id
+        , tally
+        );
+
+        .import /dev/stdin _gtpro
+
+        CREATE TEMPORARY VIEW gtpro AS
+        SELECT
+            substr(snp_id, 1, 6) AS species_id
+          , substr(snp_id, 7, 1) AS snp_type
+          , substr(snp_id, 8) AS species_position
+          , tally
+        FROM _gtpro
+        ;
+
+
+        SELECT
+            species_id
+          , species_position
+          , contig_id
+          , contig_position
+          , reference_allele
+          , alternative_allele
+          , SUM(reference_tally) AS reference_tally
+          , SUM(alternative_tally) AS alternative_tally
+        FROM (
+            SELECT
+              snp.*
+            , IIF(snp_type = '0', tally, 0) AS reference_tally
+            , IIF(snp_type = '1', tally, 0) AS alternative_tally
+            FROM gtpro
+            JOIN snp USING (species_id, species_position)
+        )
+        GROUP BY species_id, species_position
+        ;
+        EOF
+
+        zcat {input.gtpro} \
+            | sqlite3 -init $script {input.db} \
+            | bzip2 -c \
             > {output}
         """
         )
