@@ -4,56 +4,30 @@
 # {{{1 Organize raw data
 
 
-rule alias_raw_mgen_r1:
+rule alias_raw_lib_r1:
     output:
-        "sdata/{mgen}.m.r1.fq.gz",
+        "sdata/{lib}.r1.fq.gz",
     input:
-        lambda wildcards: "sraw/mgen/{}".format(config["mgen"][wildcards.mgen]["r1"]),
+        lambda wildcards: "sraw/{}".format(config["lib"][wildcards.lib]["r1"]),
     shell:
         alias_recipe
 
 
 localrules:
-    alias_raw_mgen_r1,
+    alias_raw_lib_r1,
 
 
-rule alias_raw_mgen_r2:
+rule alias_raw_lib_r2:
     output:
-        "sdata/{mgen}.m.r2.fq.gz",
+        "sdata/{lib}.r2.fq.gz",
     input:
-        lambda wildcards: "sraw/mgen/{}".format(config["mgen"][wildcards.mgen]["r2"]),
+        lambda wildcards: "sraw/{}".format(config["lib"][wildcards.lib]["r2"]),
     shell:
         alias_recipe
 
 
 localrules:
-    alias_raw_mgen_r2,
-
-
-rule alias_raw_drplt_r1:
-    output:
-        "sdata/{drplt}.d.r1.fq.gz",
-    input:
-        lambda wildcards: "sraw/drplt/{}".format(config["drplt"][wildcards.drplt]["r1"]),
-    shell:
-        alias_recipe
-
-
-localrules:
-    alias_raw_drplt_r1,
-
-
-rule alias_raw_drplt_r2:
-    output:
-        "sdata/{drplt}.d.r2.fq.gz",
-    input:
-        lambda wildcards: "sraw/drplt/{}".format(config["drplt"][wildcards.drplt]["r2"]),
-    shell:
-        alias_recipe
-
-
-localrules:
-    alias_raw_drplt_r2,
+    alias_raw_lib_r2,
 
 
 # {{{1 Process data
@@ -126,21 +100,13 @@ rule gather_all_read_pairs_from_analysis_group:
     output:
         touch("{d}/{group}.a.{stem}.ALL_PAIRS.flag"),
     input:
-        r1m=lambda w: [
-            f"{{d}}/{mgen}.m.r1.{{stem}}"
-            for mgen in config["mgen_x_analysis_group"][w.group]
+        r1=lambda w: [
+            f"{{d}}/{lib}.m.r1.{{stem}}"
+            for lib in config["lib_x_analysis_group"][w.group]
         ],
-        r2m=lambda w: [
-            f"{{d}}/{mgen}.m.r2.{{stem}}"
-            for mgen in config["mgen_x_analysis_group"][w.group]
-        ],
-        r1d=lambda w: [
-            f"{{d}}/{drplt}.m.r1.{{stem}}"
-            for drplt in config["drplt_x_analysis_group"][w.group]
-        ],
-        r2d=lambda w: [
-            f"{{d}}/{drplt}.m.r2.{{stem}}"
-            for drplt in config["drplt_x_analysis_group"][w.group]
+        r2=lambda w: [
+            f"{{d}}/{lib}.m.r2.{{stem}}"
+            for lib in config["lib_x_analysis_group"][w.group]
         ],
 
 
@@ -152,13 +118,9 @@ rule gather_all_reads_from_analysis_group:
     output:
         touch("{d}/{group}.a.{stem}.ALL_READS.flag"),
     input:
-        r1m=lambda w: [
-            f"{{d}}/{mgen}.m.r.{{stem}}"
-            for mgen in config["mgen_x_analysis_group"][w.group]
-        ],
-        r2d=lambda w: [
-            f"{{d}}/{drplt}.d.r.{{stem}}"
-            for drplt in config["drplt_x_analysis_group"][w.group]
+        r=lambda w: [
+            f"{{d}}/{lib}.m.r.{{stem}}"
+            for lib in config["lib_x_analysis_group"][w.group]
         ],
 
 

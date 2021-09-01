@@ -18,31 +18,20 @@ CREATE TABLE sample
   , biosample
   );
 
-CREATE TABLE mgen
-  ( mgen_id PRIMARY KEY
+CREATE TABLE lib
+  ( lib_id PRIMARY KEY
   , sample_id REFERENCES sample(sample_id)
+  , lib_type
   , plate_numer
   , plate_well
   , filename_r1
   , filename_r2
-  , mgen_notes
+  , lib_notes
   , sra_accession
   );
 
-CREATE TABLE drplt
-  ( drplt_id PRIMARY KEY
-  , sample_id REFERENCES sample(sample_id)
-  , filename_r1
-  , filename_r2
-  );
-
-CREATE TABLE mgen_x_analysis_group
-  ( mgen_id REFERENCES mgen(mgen_id)
-  , analysis_group
-  );
-
-CREATE TABLE drplt_x_analysis_group
-  ( drplt_id REFERENCES mgen(mgen_id)
+CREATE TABLE lib_x_analysis_group
+  ( lib_id REFERENCES mgen(mgen_id)
   , analysis_group
   );
 
@@ -57,34 +46,41 @@ CREATE TABLE snp
   , PRIMARY KEY (species_id, species_position)
   );
 
-CREATE TABLE _gtpro_snp_x_drplt
-  ( drplt_id REFERENCES drplt(drplt_id)
-  , snp_id
+CREATE TABLE _gtpro_snv_x_lib
+  ( lib_id REFERENCES lib(lib_id)
+  , read_number
+  , snv_id
   , tally
   );
 
-CREATE TABLE _gtpro_snp_x_mgen
-  ( mgen_id REFERENCES mgen(mgen_id)
-  , snp_id
-  , tally
-  );
-
-CREATE VIEW snp_x_drplt AS
+CREATE VIEW gtpro_snv_x_lib AS
 SELECT
-  drplt_id
-  , substr(snp_id, 1, 6) AS species_id
-  , substr(snp_id, 7, 1) AS snp_type
-  , substr(snp_id, 8) AS species_position
+  lib_id
+  , read_number
+  , substr(snv_id, 1, 6) AS species_id
+  , substr(snv_id, 7, 1) AS snv_type
+  , substr(snv_id, 8) AS species_position
   , tally
-FROM _gtpro_snp_x_drplt
+FROM _gtpro_snv_x_lib
 ;
 
-CREATE VIEW snp_x_mgen AS
+CREATE VIEW snp_x_lib AS
 SELECT
-  mgen_id
-  , substr(snp_id, 1, 6) AS species_id
-  , substr(snp_id, 7, 1) AS snp_type
-  , substr(snp_id, 8) AS species_position
-  , tally
-FROM _gtpro_snp_x_mgen
+    lib_id
+  , species_id
+  , species_position
+  , reference_allele
+  , alternative_allele
+  , SUM(reference_tally) AS reference_tally
+  , SUM(alternative_tally) AS alternative_tally
+FROM (
+    SELECT
+      lib_id
+    , snp.*
+    , IIF(snp_type = "0", tally, 0) AS reference_tally
+    , IIF(snp_type = "1", tally, 0) AS alternative_tally
+    FROM gtpro_snv_x_lib
+    JOIN snp USING (species_id, species_position)
+)
+GROUP BY lib_id, species_id, species_position
 ;

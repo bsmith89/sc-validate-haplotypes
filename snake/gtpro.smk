@@ -1,21 +1,23 @@
 # {{{2 GT-PRO Analysis
 
 
-rule build_gtpro_snp_dict:
-    output: "sdata/gtpro.snp_dict.db"
+rule load_gtpro_snp_dict:
+    output:
+        "data/gtpro.snp_dict.1.db",
     input:
         gtpro="ref/gtpro",
-        db0="sdata/db0.db"
+        schema="schema.sql",
     params:
-        tsv="variants_main.covered.hq.snp_dict.tsv"
+        tsv="variants_main.covered.hq.snp_dict.tsv",
     shell:
-        dd("""
-        cp {input.db0} {output}
-        chmod u+w {output}
-        cat {input}/{params.tsv} \
-            | tqdm \
+        dd(
+            """
+        sqlite3 {output} < schema.sql
+        cat {input.gtpro}/{params.tsv} \
+            | tqdm --unit-scale 1 \
             | sqlite3 -separator '\t' {output} '.import /dev/stdin snp'
-        """)
+        """
+        )
 
 
 rule run_gtpro:
@@ -42,137 +44,55 @@ rule run_gtpro:
         )
 
 
-rule move_metagenotype_out_of_sdata:
+def _groupwise_gtpro_results_db_inputs(wildcards, config):
+    w = wildcards
+    db_inputs = []
+    for lib in config["lib_x_analysis_group"][w.group]:
+        for read_number in [1, 2]:
+            db_inputs.append(
+                DatabaseInput(
+                    "_gtpro_snv_x_lib",
+                    f"sdata/{lib}.r{read_number}.{w.stem}.gtpro_raw.gz",
+                    False,
+                    {"lib_id": lib, "read_number": read_number},
+                )
+            )
+    return db_inputs
+
+
+rule _load_gtpro_results_db_helper:
     output:
-        "data/{stem}.gtpro_raw.gz",
-    input:
-        "sdata/{stem}.gtpro_raw.gz",
-    shell:
-        "cp {input} {output}"
-
-
-# NOTE: Comment-out this rule after files have been completed to
-# save DAG processing time.
-rule gtpro_finish_processing_reads:
-    output:
-        "data/{stem}.gtpro_parse.tsv.bz2",
-    input:
-        db="ref/gtpro.snp_dict.db",
-        gtpro="data/{stem}.gtpro_raw.gz",
-    shell:
-        dd(
-            """
-        script=$(mktemp)
-        cat > $script <<EOF
-        .bail on
-        .separator '\t'
-
-        CREATE TEMPORARY TABLE _gtpro
-        ( snp_id
-        , tally
-        );
-
-        .import /dev/stdin _gtpro
-
-        CREATE TEMPORARY VIEW gtpro AS
-        SELECT
-            substr(snp_id, 1, 6) AS species_id
-          , substr(snp_id, 7, 1) AS snp_type
-          , substr(snp_id, 8) AS species_position
-          , tally
-        FROM _gtpro
-        ;
-
-
-        SELECT
-            species_id
-          , species_position
-          , contig_id
-          , contig_position
-          , reference_allele
-          , alternative_allele
-          , SUM(reference_tally) AS reference_tally
-          , SUM(alternative_tally) AS alternative_tally
-        FROM (
-            SELECT
-              snp.*
-            , IIF(snp_type = '0', tally, 0) AS reference_tally
-            , IIF(snp_type = '1', tally, 0) AS alternative_tally
-            FROM gtpro
-            JOIN snp USING (species_id, species_position)
-        )
-        GROUP BY species_id, species_position
-        ;
-        EOF
-
-        zcat {input.gtpro} \
-            | sqlite3 -init $script {input.db} \
-            | bzip2 -c \
-            > {output}
-        """
-        )
-
-
-# NOTE: Comment out this rule to speed up DAG evaluation.
-# Selects a single species from every file and concatenates.
-rule construct_file_list_for_gtpro_concatenation:
-    output:
-        "data/{group}.a.{stem}.sp-{species}.gtpro_combine_helper.tsv",
+        "data/{group}.a.{stem}.gtpro_helper.xargs",
+    input: "sdata/metadata.0.db"
     params:
-        args=lambda w: "\n".join(
-            [
-                f"{mgen}\tdata/{mgen}.m.{w.stem}.gtpro_parse.tsv.bz2"
-                for mgen in config["mgen_x_analysis_group"][w.group]
-            ]
-            + [
-                f"{drplt}\tdata/{drplt}.d.{w.stem}.gtpro_parse.tsv.bz2"
-                for drplt in config["drplt_x_analysis_group"][w.group]
-            ]
-        ),
+        args=lambda w: [
+            entry.to_arg() for entry in _groupwise_gtpro_results_db_inputs(w, config)
+        ],
     run:
         with open(output[0], 'w') as f:
-            print(params.args, file=f)
+            for arg in params.args:
+                print(arg, file=f)
 
-# NOTE: Comment out this rule to speed up DAG evaluation.
-# Selects a single species from every file and concatenates.
-rule concatenate_mgen_group_one_read_count_data_from_one_species:
+rule load_gtpro_results_db:
     output:
-        "data/{group}.a.{stem}.sp-{species}.gtpro_combine.tsv.bz2",
+        "data/{group}.a.{stem}.gtpro.2.db",
     input:
-        script="scripts/select_gtpro_species_lines.sh",
-        helper="data/{group}.a.{stem}.sp-{species}.gtpro_combine_helper.tsv",
-        mgen=lambda w: [
-            f"data/{mgen}.m.{{stem}}.gtpro_parse.tsv.bz2"
-            for mgen in config["mgen_x_analysis_group"][w.group]
+        script="scripts/build_db.py",
+        db="data/gtpro.snp_dict.1.db",
+        lib="meta/lib.tsv",
+        inputs=lambda w: [
+            entry.path for entry in _groupwise_gtpro_results_db_inputs(w, config)
         ],
-        drplt=lambda w: [
-            f"data/{drplt}.d.{{stem}}.gtpro_parse.tsv.bz2"
-            for drplt in config["drplt_x_analysis_group"][w.group]
-        ],
-    params:
-        species=lambda w: w.species,
-    threads: 6
+        xargs='data/{group}.a.{stem}.gtpro_helper.xargs',
     shell:
         dd(
             """
-        parallel --colsep='\t' --bar -j {threads} \
-                {input.script} {params.species} :::: {input.helper} \
-            | bzip2 -c \
-            > {output}
+        cp {input.db} {output}
+        {input.script} {output} <(echo "") lib:{input.lib}:1
+        xargs --arg-file {input.xargs} \
+            -n 1000000000 -s 1000000000000 -x \
+            {input.script} {output} <(echo "")
         """
         )
 
 
-rule merge_both_reads_species_count_data:
-    output:
-        "data/{group}.a.{stem}.gtpro.sp-{species}.metagenotype.nc",
-    input:
-        script="scripts/merge_both_gtpro_reads_to_netcdf.py",
-        r1="data/{group}.a.r1.{stem}.sp-{species}.gtpro_combine.tsv.bz2",
-        r2="data/{group}.a.r2.{stem}.sp-{species}.gtpro_combine.tsv.bz2",
-    threads: 4
-    resources:
-        mem_mb=100000,
-        pmem=lambda w, threads: 100000 // threads,
-    shell:
-        "{input.script} {input.r1} {input.r2} {output}"

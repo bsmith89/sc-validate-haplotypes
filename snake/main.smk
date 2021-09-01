@@ -60,43 +60,26 @@ else:
 
 # {{{2 Data Configuration
 
-metadb_path = "sdata/db0.db"
+metadb_path = "sdata/metadata.0.db"
 if path.exists(metadb_path):
     con = sqlite3.connect(metadb_path)
 
     # Metagenomes
-    _mgen = pd.read_sql(
-        "SELECT mgen_id, filename_r1, filename_r2 FROM mgen",
+    _lib = pd.read_sql(
+        "SELECT lib_id, filename_r1, filename_r2 FROM lib",
         con=con,
-        index_col="mgen_id",
+        index_col="lib_id",
     )
-    for mgen_id, row in _mgen.iterrows():
-        config["mgen"][mgen_id]["r1"] = row["filename_r1"]
-        config["mgen"][mgen_id]["r2"] = row["filename_r2"]
-    _mgen_x_analysis_group = pd.read_sql(
-        "SELECT mgen_id, analysis_group FROM mgen_x_analysis_group",
+    for lib_id, row in _lib.iterrows():
+        config["lib"][lib_id]["r1"] = row["filename_r1"]
+        config["lib"][lib_id]["r2"] = row["filename_r2"]
+    _lib_x_analysis_group = pd.read_sql(
+        "SELECT lib_id, analysis_group FROM lib_x_analysis_group",
         con=con,
-        index_col="mgen_id",
+        index_col="lib_id",
     )
-    for analysis_group, d in _mgen_x_analysis_group.groupby("analysis_group"):
-        config["mgen_x_analysis_group"][analysis_group] = d.index.tolist()
-
-    # Single-cell genomics
-    _drplt = pd.read_sql(
-        "SELECT drplt_id, filename_r1, filename_r2 FROM drplt",
-        con=con,
-        index_col="drplt_id",
-    )
-    for drplt_id, row in _drplt.iterrows():
-        config["drplt"][drplt_id]["r1"] = row["filename_r1"]
-        config["drplt"][drplt_id]["r2"] = row["filename_r2"]
-    _drplt_x_analysis_group = pd.read_sql(
-        "SELECT drplt_id, analysis_group FROM drplt_x_analysis_group",
-        con=con,
-        index_col="drplt_id",
-    )
-    for analysis_group, d in _drplt_x_analysis_group.groupby("analysis_group"):
-        config["drplt_x_analysis_group"][analysis_group] = d.index.tolist()
+    for analysis_group, d in _lib_x_analysis_group.groupby("analysis_group"):
+        config["lib_x_analysis_group"][analysis_group] = d.index.tolist()
 else:
     warn(
         dd(
@@ -126,7 +109,7 @@ if path.exists("snake/local.smk"):
 wildcard_constraints:
     r="r|r1|r2|r3",
     group=noperiod_wc,
-    lib=noperiod_wc,
+    lib=noperiod_wc + '.[dm]',
     species=noperiod_wc,
     strain=noperiod_wc,
     compound_id=noperiod_wc,
@@ -147,31 +130,28 @@ rule all:
 # {{{1 Database
 
 
-db0_inputs = [
+metadata_db_inputs = [
     # Metadata
     DatabaseInput("subject", "meta/subject.tsv", True),
     DatabaseInput("sample", "meta/sample.tsv", True),
-    # Metagenomes
-    DatabaseInput("mgen", "meta/mgen.tsv", True),
-    DatabaseInput("mgen_x_analysis_group", "meta/mgen_x_analysis_group.tsv", True),
-    # Droplets
-    DatabaseInput("drplt", "meta/drplt.tsv", True),
-    DatabaseInput("drplt_x_analysis_group", "meta/drplt_x_analysis_group.tsv", True),
+    # Shotgun libraries
+    DatabaseInput("lib", "meta/lib.tsv", True),
+    DatabaseInput("lib_x_analysis_group", "meta/lib_x_analysis_group.tsv", True),
 ]
 
 
-rule build_db0:
+rule build_metadata_db:
     output:
-        "sdata/db0.db",
+        "sdata/metadata.0.db",
     input:
         script="scripts/build_db.py",
         schema="schema.sql",
-        inputs=[entry.path for entry in db0_inputs],
+        inputs=[entry.path for entry in metadata_db_inputs],
     params:
-        args=[entry.to_arg() for entry in db0_inputs],
+        args=[entry.to_arg() for entry in metadata_db_inputs],
     shell:
         dd(
-            r"""
+            """
         {input.script} {output} {input.schema} {params.args}
         """
         )
