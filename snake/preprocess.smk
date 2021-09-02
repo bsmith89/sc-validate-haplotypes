@@ -101,11 +101,11 @@ rule gather_all_read_pairs_from_analysis_group:
         touch("{d}/{group}.a.{stem}.ALL_PAIRS.flag"),
     input:
         r1=lambda w: [
-            f"{{d}}/{lib}.m.r1.{{stem}}"
+            f"{{d}}/{lib}.r1.{{stem}}"
             for lib in config["lib_x_analysis_group"][w.group]
         ],
         r2=lambda w: [
-            f"{{d}}/{lib}.m.r2.{{stem}}"
+            f"{{d}}/{lib}.r2.{{stem}}"
             for lib in config["lib_x_analysis_group"][w.group]
         ],
 
@@ -119,7 +119,7 @@ rule gather_all_reads_from_analysis_group:
         touch("{d}/{group}.a.{stem}.ALL_READS.flag"),
     input:
         r=lambda w: [
-            f"{{d}}/{lib}.m.r.{{stem}}"
+            f"{{d}}/{lib}.r.{{stem}}"
             for lib in config["lib_x_analysis_group"][w.group]
         ],
 
