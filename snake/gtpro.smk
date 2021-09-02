@@ -96,3 +96,25 @@ rule load_gtpro_results_db:
             {input.script} {output} <(echo "")
         """
         )
+
+rule denormalize_gtpro_results_db:
+    output: "data/{stem}.gtpro.2.denorm.db"
+    input:
+        db="data/{stem}.gtpro.2.db"
+    shell:
+        dd("""
+        cp {input} {output}
+        (
+        cat <<EOF
+        CREATE TABLE _snp_x_lib AS SELECT * FROM snp_x_lib;
+        DROP VIEW snp_x_lib;
+        ALTER TABLE _snp_x_lib RENAME TO snp_x_lib;
+        CREATE INDEX primary_key__snp_x_lib ON snp_x_lib(species_id, lib_id)
+        DROP TABLE _gtpro_snv_x_lib;
+        DROP TABLE gtpro_snv_x_lib;
+        DROP TABLE snp;
+        VACUUM;
+        EOF
+
+        ) | sqlite3 -echo -bail {output}
+        """)
