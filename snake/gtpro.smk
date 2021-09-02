@@ -70,9 +70,10 @@ rule _load_gtpro_results_db_helper:
             entry.to_arg() for entry in _groupwise_gtpro_results_db_inputs(w, config)
         ],
     run:
-        with open(output[0], 'w') as f:
+        with open(output[0], "w") as f:
             for arg in params.args:
                 print(arg, file=f)
+
 
 rule load_gtpro_results_db:
     output:
@@ -84,7 +85,7 @@ rule load_gtpro_results_db:
         inputs=lambda w: [
             entry.path for entry in _groupwise_gtpro_results_db_inputs(w, config)
         ],
-        xargs='data/{group}.a.{stem}.gtpro_helper.xargs',
+        xargs="data/{group}.a.{stem}.gtpro_helper.xargs",
     shell:
         dd(
             """
@@ -95,5 +96,3 @@ rule load_gtpro_results_db:
             {input.script} {output} <(echo "")
         """
         )
-
-
