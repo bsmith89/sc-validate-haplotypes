@@ -63,7 +63,8 @@ def _groupwise_gtpro_results_db_inputs(wildcards, config):
 rule _load_gtpro_results_db_helper:
     output:
         "data/{group}.a.{stem}.gtpro_helper.xargs",
-    input: "sdata/metadata.0.db"
+    input:
+        "meta/lib_x_analysis_group.tsv",
     params:
         args=lambda w: [
             entry.to_arg() for entry in _groupwise_gtpro_results_db_inputs(w, config)
