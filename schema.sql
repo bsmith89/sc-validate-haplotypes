@@ -77,8 +77,8 @@ FROM (
     SELECT
       lib_id
     , snp.*
-    , IIF(snp_type = "0", tally, 0) AS reference_tally
-    , IIF(snp_type = "1", tally, 0) AS alternative_tally
+    , IIF(snv_type = "0", tally, 0) AS reference_tally
+    , IIF(snv_type = "1", tally, 0) AS alternative_tally
     FROM gtpro_snv_x_lib
     JOIN snp USING (species_id, species_position)
 )
