@@ -270,7 +270,7 @@ def ordination_plot(
         ax.set_xlabel(f"{x}")
         ax.set_ylabel(f"{y}")
     ax.legend(bbox_to_anchor=(1, 1))
-    return ax, ordin_out
+    return ax, d1, ordin_out
 
 
 def rotate_xticklabels(ax=None, rotation=45, ha="right", **kwargs):
