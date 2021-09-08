@@ -97,8 +97,10 @@ def scatterplot(
     edgestyleby="__none__",
     edgestyle_palette=None,
     edgestyleby_order=None,
+    zorderby="__none__",
     ax=None,
     scatter_kws={},
+    fill_legend=True,
 ):
 
     data = data.copy()
@@ -146,9 +148,15 @@ def scatterplot(
     scatter_kws_.update(scatter_kws)
 
     for (
-        (feat_color, feat_marker, feat_markersize, feat_edgecolor, feat_edgestyle),
-        d,
-    ) in data.groupby([colorby, markerby, markersizeby, edgecolorby, edgestyleby]):
+        feat_color,
+        feat_marker,
+        feat_markersize,
+        feat_edgecolor,
+        feat_edgestyle,
+        feat_zorder,
+    ), d in data.groupby(
+        [colorby, markerby, markersizeby, edgecolorby, edgestyleby, zorderby]
+    ):
         if (
             (feat_color not in colorby_order)
             or (feat_marker not in markerby_order)
@@ -167,58 +175,60 @@ def scatterplot(
             edgecolor=[edgecolor_palette[feat_edgecolor]],
             linestyle=edgestyle_palette[feat_edgestyle],
             s=markersize_palette[feat_markersize],
+            zorder=feat_zorder,
             **scatter_kws_,
         )
 
-    for feat_color in colorby_order:
-        ax.scatter(
-            [],
-            [],
-            marker="o",
-            c=[color_palette[feat_color]],
-            label=feat_color,
-            **scatter_kws_,
-        )
-    for feat_marker in markerby_order:
-        ax.scatter(
-            [],
-            [],
-            marker=marker_palette[feat_marker],
-            c="grey",
-            label=feat_marker,
-            **scatter_kws_,
-        )
-    for feat_markersize in markersizeby_order:
-        ax.scatter(
-            [],
-            [],
-            marker="o",
-            s=markersize_palette[feat_markersize],
-            c="grey",
-            label=feat_markersize,
-            **scatter_kws_,
-        )
-    for feat_edgecolor in edgecolorby_order:
-        ax.scatter(
-            [],
-            [],
-            marker="o",
-            c="lightgrey",
-            edgecolor=edgecolor_palette[feat_edgecolor],
-            label=feat_edgecolor,
-            **scatter_kws_,
-        )
-    for feat_edgestyle in edgestyleby_order:
-        ax.scatter(
-            [],
-            [],
-            marker="o",
-            c="none",
-            edgecolor="black",
-            linestyle=edgestyle_palette[feat_edgestyle],
-            label=feat_edgestyle,
-            **scatter_kws_,
-        )
+    if fill_legend:
+        for feat_color in colorby_order:
+            ax.scatter(
+                [],
+                [],
+                marker="o",
+                c=[color_palette[feat_color]],
+                label=feat_color,
+                **scatter_kws_,
+            )
+        for feat_marker in markerby_order:
+            ax.scatter(
+                [],
+                [],
+                marker=marker_palette[feat_marker],
+                c="grey",
+                label=feat_marker,
+                **scatter_kws_,
+            )
+        for feat_markersize in markersizeby_order:
+            ax.scatter(
+                [],
+                [],
+                marker="o",
+                s=markersize_palette[feat_markersize],
+                c="grey",
+                label=feat_markersize,
+                **scatter_kws_,
+            )
+        for feat_edgecolor in edgecolorby_order:
+            ax.scatter(
+                [],
+                [],
+                marker="o",
+                c="lightgrey",
+                edgecolor=edgecolor_palette[feat_edgecolor],
+                label=feat_edgecolor,
+                **scatter_kws_,
+            )
+        for feat_edgestyle in edgestyleby_order:
+            ax.scatter(
+                [],
+                [],
+                marker="o",
+                c="none",
+                edgecolor="black",
+                linestyle=edgestyle_palette[feat_edgestyle],
+                label=feat_edgestyle,
+                **scatter_kws_,
+            )
 
     return ax
 
