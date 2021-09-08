@@ -42,6 +42,30 @@ def pca_ordination(data, **kwargs):
     return d1, frac_explained, {}
 
 
+def mds_ordination(data, is_dmat=False, **kwargs):
+    # PCoA  # TODO: Modularize out?
+    if is_dmat:
+        dmat = data.loc[:, data.index]  # Ensure symmetric
+    else:
+        dmat = pd.DataFrame(
+            squareform(pdist(data, **kwargs)), index=data.index, columns=data.index
+        )
+    d1 = MDS(
+        n_components=2,
+        max_iter=3000,
+        eps=1e-12,
+        random_state=1,
+        dissimilarity="precomputed",
+        n_jobs=1,
+    ).fit_transform(dmat)
+
+    d1 = pd.DataFrame(
+        d1, index=data.index, columns=[f"PC{i}" for i in np.arange(d1.shape[1]) + 1]
+    )
+    frac_explained = pd.Series(np.nan, index=d1.columns)
+    return d1, frac_explained, {"dmat": dmat}
+
+
 def nmds_ordination(data, is_dmat=False, **kwargs):
     # PCoA  # TODO: Modularize out?
     if is_dmat:
