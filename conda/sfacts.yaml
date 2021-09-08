@@ -30,6 +30,7 @@ dependencies:
   - defusedxml=0.7.1=pyhd8ed1ab_0
   - entrypoints=0.3=py39hde42818_1002
   - expat=2.4.1=h2531618_2
+  - fastcluster=1.1.26=py39hd56b5f2_2
   - fontconfig=2.13.1=hba837de_1005
   - freetype=2.10.4=h0708190_1
   - future=0.18.2=py39hf3d152e_3
