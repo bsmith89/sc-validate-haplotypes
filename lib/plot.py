@@ -9,7 +9,7 @@ from sklearn.decomposition import PCA
 from collections import defaultdict
 import seaborn as sns
 import scipy as sp
-from lib.pandas import align_indexes
+from lib.pandas_util import align_indexes
 
 
 DEFAULT_MARKER_LIST = ["o", "v", "s", ">", "D", "X", "h", "^"]
