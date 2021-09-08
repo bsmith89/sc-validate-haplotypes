@@ -318,14 +318,14 @@ def boxplot_with_points(
 
     data_kwargs = dict(data=data, x=x, y=y, hue=hue, **kwargs)
 
-    distkw = data_kwargs.copy()
-    distkw.update(dict(showfliers=False, ax=ax, saturation=0.35))
+    distkw = dict(showfliers=False, ax=ax, saturation=0.35, whis=0)
+    distkw.update(data_kwargs)
     distkw.update(dist_kwargs)
     dist_plotter(**distkw)
     handles, labels = ax.get_legend_handles_labels()
 
-    pointskw = data_kwargs.copy()
-    pointskw.update(dict(dodge=True, linewidth=1, ax=ax))
+    pointskw = dict(dodge=True, linewidth=1, ax=ax)
+    pointskw.update(data_kwargs)
     pointskw.update(points_kwargs)
     points_plotter(**pointskw)
     if legend:
@@ -357,3 +357,69 @@ def residuals_plot(fit, ax=None, data=None, **kwargs):
     ax.plot(x, spline(x))
     ax.set_ylabel("Standardized Residuals")
     ax.set_xlabel("Fitted Value")
+
+
+def orderplot(
+    y,
+    data,
+    lineby=None,
+    orderby=None,
+    orderby_order=None,
+    colorby=None,
+    colorby_palette=None,
+    colorby_order=None,
+    xjitter=0,
+    yjitter=0,
+    ax=None,
+    plot_kwargs={},
+    legend_kwargs={},
+):
+    d0 = data.copy()
+    if not ax:
+        ax = plt.gca()
+
+    if orderby_order is None:
+        orderby_order = d0[orderby].unique()
+
+    orderby_idx = (
+        pd.Series(orderby_order, name="orderby")
+        .reset_index()
+        .set_index("orderby")
+        .squeeze()
+    )
+    x = "_orderby__idx"
+    d0[x] = d0[orderby].map(orderby_idx)
+
+    if colorby_order is None:
+        colorby_order = d0[colorby].unique()
+
+    for colorby_feat, d1 in d0.groupby(colorby):
+        for lineby_feat, d2 in d1.groupby(lineby):
+            x_jit = np.random.uniform(0, xjitter)
+            y_jit = np.random.uniform(0, yjitter)
+            d3 = (
+                d2.reset_index()
+                .set_index(orderby)
+                .reindex(orderby_order)
+                .dropna(subset=[y])
+                .assign(x=lambda v: v[x] + x_jit, y=lambda v: v[y] + y_jit)
+            )
+            ax.plot(
+                "x",
+                "y",
+                "",
+                data=d3,
+                c=colorby_palette[colorby_feat],
+                label="__nolegend__",
+                **plot_kwargs,
+            )
+
+    for colorby_feat in colorby_order:
+        ax.plot([], [], "", c=colorby_palette[colorby_feat], label=colorby_feat)
+    ax.legend(**legend_kwargs, title=colorby)
+    ax.set_ylabel(y)
+    ax.set_xlabel(orderby)
+    ax.set_xticks(orderby_idx)
+    ax.set_xticklabels(orderby_idx.index)
+    rotate_xticklabels(ax=ax)
+    return ax
