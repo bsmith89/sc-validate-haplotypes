@@ -281,6 +281,14 @@ def rotate_xticklabels(ax=None, rotation=45, ha="right", **kwargs):
     )
 
 
+def rotate_yticklabels(ax=None, rotation=-45, va="bottom", **kwargs):
+    if ax is None:
+        ax = plt.gca()
+    ax.set_yticklabels(
+        [y.get_text() for y in ax.get_yticklabels()], rotation=rotation, va=va, **kwargs
+    )
+
+
 def boxplot_with_points(
     x,
     y,
