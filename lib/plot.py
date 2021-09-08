@@ -245,6 +245,8 @@ def ordination_plot(
     TODO: Align this function to be similar to Seaborn plotting functions.
     """
     x, y = xy
+    if subset is None:
+        subset = pd.Series(True, index=data.index)
     data, meta, subset = align_indexes(data, meta, subset)
     data = data.loc[subset].copy()
     meta = meta.loc[subset].copy()
