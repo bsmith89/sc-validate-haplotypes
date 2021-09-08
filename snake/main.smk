@@ -16,7 +16,7 @@ from lib.snake import (
     nested_dictlookup,
 )
 import sqlite3
-from lib.panda_utils import idxwhere
+from lib.pandas_util import idxwhere
 import pandas as pd
 import math
 from itertools import product
