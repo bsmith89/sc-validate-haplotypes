@@ -192,13 +192,16 @@ def scatterplot(
     scatter_kws_.update(scatter_kws)
 
     for (
-        feat_color,
-        feat_marker,
-        feat_markersize,
-        feat_edgecolor,
-        feat_edgestyle,
-        feat_zorder,
-    ), d in data.groupby(
+        (
+            feat_color,
+            feat_marker,
+            feat_markersize,
+            feat_edgecolor,
+            feat_edgestyle,
+            feat_zorder,
+        ),
+        d,
+    ) in data.groupby(
         [colorby, markerby, markersizeby, edgecolorby, edgestyleby, zorderby]
     ):
         if (
@@ -209,6 +212,8 @@ def scatterplot(
             or (feat_markersize not in markersizeby_order)
         ):
             continue
+        if feat_zorder == "__none__":
+            feat_zorder = 0
         ax.scatter(
             x,
             y,
