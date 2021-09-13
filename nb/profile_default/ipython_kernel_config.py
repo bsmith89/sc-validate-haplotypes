@@ -1,4 +1,17 @@
 c = get_config()
-c.IPKernelApp.exec_lines = ["import os as _os",  # On notebook startup, change
-                            "_os.chdir('..')"]   #+PWD to the project root.
-c.IPKernelApp.matplotlib = 'inline'              # Display figures inline
+
+# On notebook startup,
+c.IPKernelApp.exec_lines = [
+    # Change PWD to the project root.
+    """
+import os as _os
+_os.chdir('..')
+""",
+    # Add include/ dirs to the path
+    """
+import sys as _sys
+_include_dir = 'include'
+for _d in _os.listdir(_include_dir):
+    _sys.path.append(_os.path.join(_include_dir, _d))
+""",
+]
