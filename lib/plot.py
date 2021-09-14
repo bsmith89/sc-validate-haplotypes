@@ -13,7 +13,15 @@ from lib.pandas_util import align_indexes
 
 
 DEFAULT_MARKER_LIST = ["o", "v", "s", ">", "D", "X", "h", "^"]
-DEFAULT_COLOR_LIST = ["black", "blue", "green", "orange", "purple", "red", "pink"]
+DEFAULT_COLOR_LIST = [
+    "black",
+    "blue",
+    "green",
+    "orange",
+    "purple",
+    "red",
+    "pink",
+]
 DEFAULT_LINESTYLE_LIST = ["-", "--", "-.", ":"]
 
 
@@ -36,9 +44,7 @@ def pca_ordination(data):
     d1 = pca.transform(data)
 
     d1 = pd.DataFrame(
-        d1,
-        index=data.index,
-        columns=[f"PC{i}" for i in np.arange(d1.shape[1]) + 1],
+        d1, index=data.index, columns=[f"PC{i}" for i in np.arange(d1.shape[1]) + 1],
     )
     frac_explained = pd.Series(pca.explained_variance_ratio_, index=d1.columns)
     return d1, frac_explained, {}
@@ -70,13 +76,15 @@ def mds_ordination(data, is_dmat=False, mds_kwargs=None, pdist_kwargs=None):
     ).fit_transform(dmat)
 
     d1 = pd.DataFrame(
-        d1, index=data.index, columns=[f"PC{i}" for i in np.arange(d1.shape[1]) + 1]
+        d1, index=data.index, columns=[f"PC{i}" for i in np.arange(d1.shape[1]) + 1],
     )
     frac_explained = pd.Series(np.nan, index=d1.columns)
     return d1, frac_explained, {"dmat": dmat}
 
 
-def nmds_ordination(data, is_dmat=False, mds_kwargs=None, nmds_kwargs=None, pdist_kwargs=None):
+def nmds_ordination(
+    data, is_dmat=False, mds_kwargs=None, nmds_kwargs=None, pdist_kwargs=None
+):
     # PCoA  # TODO: Modularize out?
     if mds_kwargs is None:
         mds_kwargs = {}
@@ -111,11 +119,12 @@ def nmds_ordination(data, is_dmat=False, mds_kwargs=None, nmds_kwargs=None, pdis
         random_state=1,
         n_jobs=1,
         n_init=1,
+        **nmds_kwargs,
     )
     d1 = nmds.fit_transform(dmat, init=init)
 
     d1 = pd.DataFrame(
-        d1, index=data.index, columns=[f"PC{i}" for i in np.arange(d1.shape[1]) + 1]
+        d1, index=data.index, columns=[f"PC{i}" for i in np.arange(d1.shape[1]) + 1],
     )
     frac_explained = pd.Series(np.nan, index=d1.columns)
     return d1, frac_explained, {"dmat": dmat}
@@ -326,7 +335,10 @@ def rotate_xticklabels(ax=None, rotation=45, ha="right", **kwargs):
     if ax is None:
         ax = plt.gca()
     ax.set_xticklabels(
-        [x.get_text() for x in ax.get_xticklabels()], rotation=rotation, ha=ha, **kwargs
+        [x.get_text() for x in ax.get_xticklabels()],
+        rotation=rotation,
+        ha=ha,
+        **kwargs,
     )
 
 
@@ -334,7 +346,10 @@ def rotate_yticklabels(ax=None, rotation=-45, va="bottom", **kwargs):
     if ax is None:
         ax = plt.gca()
     ax.set_yticklabels(
-        [y.get_text() for y in ax.get_yticklabels()], rotation=rotation, va=va, **kwargs
+        [y.get_text() for y in ax.get_yticklabels()],
+        rotation=rotation,
+        va=va,
+        **kwargs,
     )
 
 
