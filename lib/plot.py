@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from sklearn.manifold import MDS
+from sklearn.manifold import MDS, TSNE
 from scipy.spatial.distance import pdist, squareform
 import numpy as np
 from itertools import cycle
@@ -122,6 +122,28 @@ def nmds_ordination(
         **nmds_kwargs,
     )
     d1 = nmds.fit_transform(dmat, init=init)
+
+    d1 = pd.DataFrame(
+        d1, index=data.index, columns=[f"PC{i}" for i in np.arange(d1.shape[1]) + 1],
+    )
+    frac_explained = pd.Series(np.nan, index=d1.columns)
+    return d1, frac_explained, {"dmat": dmat}
+
+
+def tsne_ordination(data, is_dmat=False, tsne_kwargs=None, pdist_kwargs=None):
+    # PCoA  # TODO: Modularize out?
+    if tsne_kwargs is None:
+        tsne_kwargs = {}
+    if pdist_kwargs is None:
+        pdist_kwargs = {}
+
+    if is_dmat:
+        dmat = data.loc[:, data.index]  # Ensure symmetric
+    else:
+        dmat = pd.DataFrame(
+            squareform(pdist(data, **kwargs)), index=data.index, columns=data.index,
+        )
+    d1 = TSNE(n_components=2, metric="precomputed", **tsne_kwargs).fit_transform(dmat)
 
     d1 = pd.DataFrame(
         d1, index=data.index, columns=[f"PC{i}" for i in np.arange(d1.shape[1]) + 1],
