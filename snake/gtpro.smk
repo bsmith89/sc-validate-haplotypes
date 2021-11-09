@@ -75,27 +75,27 @@ rule _load_gtpro_results_db_helper:
                 print(arg, file=f)
 
 
-rule load_gtpro_results_db:
-    output:
-        "data/{group}.a.{stem}.gtpro.2.db",
-    input:
-        script="scripts/build_db.py",
-        db="data/gtpro.snp_dict.1.db",
-        lib="meta/lib.tsv",
-        inputs=lambda w: [
-            entry.path for entry in _groupwise_gtpro_results_db_inputs(w, config)
-        ],
-        xargs="data/{group}.a.{stem}.gtpro_helper.xargs",
-    shell:
-        dd(
-            """
-        cp {input.db} {output}
-        {input.script} {output} <(echo "") lib:{input.lib}:1
-        xargs --arg-file {input.xargs} \
-            -n 1000000000 -s 1000000000000 -x \
-            {input.script} {output} <(echo "")
-        """
-        )
+# rule load_gtpro_results_db:
+#     output:
+#         "data/{group}.a.{stem}.gtpro.2.db",
+#     input:
+#         script="scripts/build_db.py",
+#         db="data/gtpro.snp_dict.1.db",
+#         lib="meta/lib.tsv",
+#         inputs=lambda w: [
+#             entry.path for entry in _groupwise_gtpro_results_db_inputs(w, config)
+#         ],
+#         xargs="data/{group}.a.{stem}.gtpro_helper.xargs",
+#     shell:
+#         dd(
+#             """
+#         cp {input.db} {output}
+#         {input.script} {output} <(echo "") lib:{input.lib}:1
+#         xargs --arg-file {input.xargs} \
+#             -n 1000000000 -s 1000000000000 -x \
+#             {input.script} {output} <(echo "")
+#         """
+#         )
 
 rule denormalize_gtpro_results_db:
     output: "data/{stem}.gtpro.2.denorm.db"

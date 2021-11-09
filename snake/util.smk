@@ -2,14 +2,25 @@ rule start_jupyter:
     threads: MAX_THREADS
     params:
         port=config["jupyter_port"],
+        python_paths=[],
     shell:
-        "jupyter lab --port={params.port}"
+        dd(
+            """
+        jupyter lab --port={params.port}
+        """
+        )
 
 
 rule start_ipython:
+    params:
+        python_paths=[],
     threads: MAX_THREADS
     shell:
-        limit_numpy_procs + "ipython"
+        dd(
+            """
+        ipython
+        """
+        )
 
 
 rule start_shell:
@@ -87,7 +98,7 @@ rule config_debug:
     output:
         "config_debug.{config_key}",
     params:
-        meta=lambda w: nested_dictlookup(config, *w.config_key.split('.'))
+        meta=lambda w: nested_dictlookup(config, *w.config_key.split(".")),
     shell:
         """
         echo "{wildcards.config_key}"
